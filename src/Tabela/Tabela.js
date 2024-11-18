@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../Firebase/conexao';
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs } from 'firebase/firestore';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import styles from './Tabela.module.css';
 
 const Tabela = () => {
@@ -10,7 +12,11 @@ const Tabela = () => {
   const [emailOuCelular, setEmailOuCelular] = useState('');
   const [editandoId, setEditandoId] = useState(null);
   const [erroContato, setErroContato] = useState('');
-  const [itemExcluir, setItemExcluir] = useState(null); // Estado para o item a ser excluído
+  const [itemExcluir, setItemExcluir] = useState(null);
+  const [erroNome, setErroNome] = useState(false);
+  const [erroIdade, setErroIdade] = useState(false);
+
+  const formRef = useRef(null); 
 
   useEffect(() => {
     const BuscarDados = async () => {
@@ -31,18 +37,39 @@ const Tabela = () => {
   };
 
   const adicionarItem = async () => {
-    if (!nome || !idade || !emailOuCelular) {
-      setErroContato('Por favor, preencha todos os campos.');
-      return;
+    let hasError = false;
+
+    if (!nome) {
+      setErroNome(true);
+      hasError = true;
+    } else {
+      setErroNome(false);
     }
-    if (!validarEmailOuCelular(emailOuCelular)) {
+
+    if (!idade) {
+      setErroIdade(true);
+      hasError = true;
+    } else {
+      setErroIdade(false);
+    }
+
+    if (!emailOuCelular) {
+      setErroContato('Por favor, preencha os campos.');
+      hasError = true;
+    } else if (!validarEmailOuCelular(emailOuCelular)) {
       setErroContato('Por favor, insira um e-mail ou número de celular válido.');
-      return;
+      hasError = true;
+    } else {
+      setErroContato('');
     }
+
+    if (hasError) return;
+
     const novoItem = { nome, idade: parseInt(idade), contato: emailOuCelular };
     try {
       const docRef = await addDoc(collection(db, 'usuarios'), novoItem);
       setDados([...dados, { id: docRef.id, ...novoItem }]);
+      toast.success('Item cadastrado com sucesso!');
       limparCampos();
     } catch (error) {
       console.error('Erro ao adicionar item:', error);
@@ -54,6 +81,11 @@ const Tabela = () => {
     setNome(item.nome);
     setIdade(item.idade);
     setEmailOuCelular(item.contato);
+
+    
+    if (formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const salvarEdicao = async () => {
@@ -63,9 +95,12 @@ const Tabela = () => {
       await updateDoc(itemRef, { nome, idade: parseInt(idade), contato: emailOuCelular });
       setDados(
         dados.map((item) =>
-          item.id === editandoId ? { ...item, nome, idade: parseInt(idade), contato: emailOuCelular } : item
+          item.id === editandoId
+            ? { ...item, nome, idade: parseInt(idade), contato: emailOuCelular }
+            : item
         )
       );
+      toast.success('Item editado com sucesso!');
       limparCampos();
       setEditandoId(null);
     } catch (error) {
@@ -74,21 +109,22 @@ const Tabela = () => {
   };
 
   const confirmarExclusao = (id) => {
-    setItemExcluir(id); // Define o item a ser excluído
+    setItemExcluir(id);
   };
 
   const excluirItem = async () => {
     try {
       await deleteDoc(doc(db, 'usuarios', itemExcluir));
       setDados(dados.filter((item) => item.id !== itemExcluir));
-      setItemExcluir(null); // Limpa o item a ser excluído após a confirmação
+      toast.success('Item excluído com sucesso!');
+      setItemExcluir(null);
     } catch (error) {
       console.error('Erro ao excluir item:', error);
     }
   };
 
   const cancelarExclusao = () => {
-    setItemExcluir(null); // Cancela a exclusão
+    setItemExcluir(null);
   };
 
   const limparCampos = () => {
@@ -96,33 +132,35 @@ const Tabela = () => {
     setIdade('');
     setEmailOuCelular('');
     setErroContato('');
+    setErroNome(false);
+    setErroIdade(false);
   };
 
   return (
     <div className={styles.container}>
       <h2 className={styles.titulo}>Sistema de cadastrar, editar e remover</h2>
 
-      <div className={styles.formContainer}>
+      <div ref={formRef} className={styles.formContainer}>
         <input
           type="text"
           placeholder="Nome"
           value={nome}
           onChange={(e) => setNome(e.target.value)}
-          className={styles.input}
+          className={`${styles.input} ${erroNome ? styles.erroBorda : ''}`}
         />
         <input
           type="number"
           placeholder="Idade"
           value={idade}
           onChange={(e) => setIdade(e.target.value)}
-          className={styles.input}
+          className={`${styles.input} ${erroIdade ? styles.erroBorda : ''}`}
         />
         <input
           type="text"
           placeholder="E-mail ou Celular"
           value={emailOuCelular}
           onChange={(e) => setEmailOuCelular(e.target.value)}
-          className={styles.input}
+          className={`${styles.input} ${erroContato ? styles.erroBorda : ''}`}
         />
         <button onClick={editandoId ? salvarEdicao : adicionarItem} className={styles.button}>
           {editandoId ? 'Salvar' : 'Cadastrar'}
@@ -162,6 +200,8 @@ const Tabela = () => {
           </div>
         </div>
       )}
+
+      <ToastContainer />
     </div>
   );
 };

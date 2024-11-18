@@ -109,6 +109,17 @@ button {
     font-size: 1em;
 }
 
+.erroBorda {
+    border: 2px solid red;
+  }
+  
+  .erro {
+    color: red;
+    font-size: 0.9rem;
+    margin-top: 5px;
+  }
+  
+
 .modalOverlay {
     position: fixed;
     top: 0;
@@ -169,6 +180,9 @@ button {
     border-bottom: 1px solid #ccc;
 }
 
+
+
+
 @media (max-width: 844px) {
     .titulo {
         font-size: 27px;      
@@ -188,4 +202,30 @@ button {
         width: 73%;
         margin: 4px 0;
     }
+
 }
+
+@media (max-width:  932px) {
+    .titulo {
+        font-size: 27px;      
+        padding-top: -50px;
+    }
+
+    .formContainer {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    input {
+        width: 100%;
+    }
+
+    .button, .addButton, .editButton, .deleteButton {
+        width: 73%;
+        margin: 4px 0;
+    }
+
+}
+
+
+
